@@ -14,7 +14,7 @@ const RAINBOW_COLORS = [
 
 const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('kids_joy_v16_data');
+    const saved = localStorage.getItem('kids_joy_v17_data');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
@@ -34,10 +34,9 @@ const App: React.FC = () => {
   const [showAllCats, setShowAllCats] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('kids_joy_v16_data', JSON.stringify(categories));
+    localStorage.setItem('kids_joy_v17_data', JSON.stringify(categories));
   }, [categories]);
 
-  // اصلاح منطق چک کردن کلید برای کارکرد در هر محیطی
   const ensureApiKeyIsReady = async () => {
     if (typeof window !== 'undefined' && (window as any).aistudio) {
       const hasKey = await (window as any).aistudio.hasSelectedApiKey();
@@ -51,12 +50,19 @@ const App: React.FC = () => {
   const handleApiError = async (error: any) => {
     console.error("API Error Detail:", error);
     const errStr = String(error).toLowerCase();
-    if (errStr.includes("key") || errStr.includes("401") || errStr.includes("403") || errStr.includes("not found")) {
-      if (typeof window !== 'undefined' && (window as any).aistudio) {
+    // اگر در محیط تست AI Studio هستیم
+    if (typeof window !== 'undefined' && (window as any).aistudio) {
+      if (errStr.includes("key") || errStr.includes("401") || errStr.includes("403")) {
         await (window as any).aistudio.openSelectKey();
-      } else {
-        alert("Please make sure your API_KEY is set correctly in your hosting environment (like Vercel or Netlify).");
+        return;
       }
+    }
+    
+    // اگر در سایت شخصی کاربر هستیم
+    if (!process.env.API_KEY || process.env.API_KEY === "") {
+      alert("❌ خطای کلید API:\nلطفاً فایل README.md را بخوانید تا یاد بگیرید چگونه API_KEY را در تنظیمات Cloudflare یا Vercel خود اضافه کنید.");
+    } else {
+      alert("Something went wrong with the AI magic. Please try again!");
     }
   };
 
@@ -65,7 +71,7 @@ const App: React.FC = () => {
       if (state.view === 'learning_detail' && state.selectedCategory) {
         const item = state.selectedCategory.items[learningIndex];
         if (item) {
-          const cached = await imageStorage.get(`img_v16_${item.id}`);
+          const cached = await imageStorage.get(`img_v17_${item.id}`);
           setItemImage(cached);
         }
       }
@@ -82,10 +88,10 @@ const App: React.FC = () => {
         try {
           const audio = await generateSpeech(text);
           if (audio) { await playTTSSound(audio, text); played = true; }
-        } catch (e) { console.warn("Cloud TTS failed, falling back to local"); }
+        } catch (e) { }
       }
       if (!played) await playLocalSpeech(text);
-    } catch (e) { console.error("Speech error:", e); }
+    } catch (e) { }
     finally { setIsSpeaking(false); }
   };
 
@@ -99,7 +105,7 @@ const App: React.FC = () => {
     try {
       const url = await generateItemImage(item.name, state.selectedCategory!.name);
       if (url) {
-        await imageStorage.set(`img_v16_${item.id}`, url);
+        await imageStorage.set(`img_v17_${item.id}`, url);
         setItemImage(url);
       }
     } catch (e) {
@@ -189,7 +195,7 @@ const App: React.FC = () => {
 
       {state.view === 'learning_detail' && state.selectedCategory && (
         <div className="flex-1 flex flex-col overflow-hidden bg-white pb-[var(--safe-bottom)]">
-          {/* HEADER WITH COUNT - REMAINED IN YELLOW SECTION */}
+          {/* HEADER SECTION */}
           <div className="bg-[#FFD233] pt-[calc(var(--safe-top)+0.5rem)] pb-4 px-6 rounded-b-[2.5rem] shadow-sm flex items-center justify-between flex-shrink-0 z-40">
             <button onClick={() => setState({...state, view: 'main'})} className="bg-white/40 w-11 h-11 rounded-full text-white flex items-center justify-center text-xl shadow-inner btn-tap">🏠</button>
             <div className="flex flex-col items-center">
@@ -210,19 +216,20 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center px-4 pt-4 pb-2 overflow-hidden relative">
-              {/* CENTER CARD */}
-              <div className="w-full max-w-[340px] flex-1 flex flex-col justify-center relative px-2">
-                <div onClick={() => setShowPersian(!showPersian)} className={`w-full aspect-square rounded-[4.5rem] shadow-2xl flex flex-col items-center justify-center relative border-[2px] transition-all duration-500 overflow-hidden ${showPersian ? 'bg-indigo-600 border-indigo-400' : 'bg-white border-slate-50'}`}>
+            <div className="flex-1 flex flex-col items-center justify-center px-4 pt-2 pb-2 overflow-hidden relative">
+              
+              {/* IMAGE CARD */}
+              <div className="w-full max-w-[340px] flex-1 flex flex-col justify-center relative">
+                <div onClick={() => setShowPersian(!showPersian)} className={`w-full aspect-square rounded-[4rem] shadow-2xl flex flex-col items-center justify-center relative border-[2px] transition-all duration-500 overflow-hidden ${showPersian ? 'bg-indigo-600 border-indigo-400' : 'bg-white border-slate-50'}`}>
                   
-                  {/* ACTIONS ON TOP CORNERS OF THE IMAGE */}
+                  {/* FLOATING ACTION BADGES */}
                   {!showPersian && (
                     <>
-                      <button onClick={handleImageGen} className={`absolute top-5 left-5 z-50 w-12 h-12 bg-[#F43F5E] rounded-xl flex items-center justify-center text-2xl text-white shadow-xl border-2 border-white btn-tap ${isGeneratingImg ? 'animate-spin' : ''}`}>
+                      <button onClick={handleImageGen} className={`absolute top-4 left-4 z-50 w-12 h-12 bg-[#F43F5E] rounded-xl flex items-center justify-center text-2xl text-white shadow-lg border-2 border-white btn-tap ${isGeneratingImg ? 'animate-spin' : ''}`}>
                         {isGeneratingImg ? '⏳' : '🎨'}
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); handleSpeech(state.selectedCategory?.items[learningIndex]?.name || ""); }} 
-                        className="absolute top-5 right-5 z-50 w-12 h-12 bg-[#6366F1] rounded-xl flex items-center justify-center text-2xl text-white shadow-xl border-2 border-white btn-tap">
+                        className="absolute top-4 right-4 z-50 w-12 h-12 bg-[#6366F1] rounded-xl flex items-center justify-center text-2xl text-white shadow-lg border-2 border-white btn-tap">
                         🔊
                       </button>
                     </>
@@ -232,12 +239,12 @@ const App: React.FC = () => {
                     <div className="flex flex-col items-center justify-center p-4 w-full h-full">
                       <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-2">
                         {itemImage ? (
-                          <img src={itemImage} alt="item" className="w-[98%] h-[98%] object-contain rounded-[3.5rem] animate-in zoom-in duration-500" />
+                          <img src={itemImage} alt="item" className="w-[98%] h-[98%] object-contain rounded-[3rem] animate-in zoom-in duration-500" />
                         ) : (
-                          <span className="text-[220px] drop-shadow-2xl animate-bounce-slow leading-none">{state.selectedCategory.items[learningIndex]?.emoji}</span>
+                          <span className="text-[200px] drop-shadow-2xl animate-bounce-slow leading-none">{state.selectedCategory.items[learningIndex]?.emoji}</span>
                         )}
                       </div>
-                      <div className="bg-[#EEF2FF] px-10 py-2.5 rounded-2xl border border-indigo-100 shadow-sm flex-shrink-0 mb-3">
+                      <div className="bg-[#EEF2FF] px-10 py-2.5 rounded-2xl border border-indigo-100 shadow-sm flex-shrink-0 mb-2">
                         <span className="text-2xl font-kids text-indigo-700 uppercase tracking-widest">{state.selectedCategory.items[learningIndex]?.name}</span>
                       </div>
                     </div>
@@ -249,14 +256,14 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                {/* NAVIGATION BUTTONS - MOVED DOWN, ROUND AND ATTRACTIVE */}
-                <div className="flex items-center justify-between w-full mt-6 px-4">
+                {/* ATTRACTIVE ROUND NAVIGATION BUTTONS BELOW THE CARD */}
+                <div className="flex items-center justify-around w-full mt-10 px-6">
                   <button onClick={() => { setLearningIndex(p => (p > 0 ? p - 1 : state.selectedCategory!.items.length - 1)); setShowPersian(false); }} 
-                    className="w-20 h-20 bg-white rounded-full text-5xl flex items-center justify-center shadow-lg border-b-8 border-slate-200 active:translate-y-2 active:border-b-0 transition-all btn-tap">
+                    className="w-24 h-24 bg-white rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#e2e8f0] active:translate-y-2 active:shadow-none transition-all btn-tap">
                     👈
                   </button>
                   <button onClick={() => { setLearningIndex(p => (p < state.selectedCategory!.items.length - 1 ? p + 1 : 0)); setShowPersian(false); }} 
-                    className="w-20 h-20 bg-indigo-600 rounded-full text-5xl flex items-center justify-center shadow-xl border-b-8 border-indigo-900 text-white active:translate-y-2 active:border-b-0 transition-all btn-tap">
+                    className="w-24 h-24 bg-indigo-600 rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#312e81] text-white active:translate-y-2 active:shadow-none transition-all btn-tap">
                     👉
                   </button>
                 </div>
@@ -264,7 +271,7 @@ const App: React.FC = () => {
             </div>
 
             {/* MAGIC EXPAND BUTTON */}
-            <div className="px-12 pb-6 mt-2 flex-shrink-0 z-30">
+            <div className="px-12 pb-6 mt-4 flex-shrink-0 z-30">
               <button onClick={handleExpand} disabled={isExpanding} className={`w-full py-5 rounded-[2.5rem] font-black text-white shadow-xl transition-all flex items-center justify-center space-x-4 text-sm tracking-widest active:scale-95 ${isExpanding ? 'bg-slate-300' : 'bg-magic magic-btn-active'}`}>
                 <span className="text-2xl">🪄</span>
                 <span>{isExpanding ? 'WORKING MAGIC...' : `GET 10 NEW ITEMS`}</span>
@@ -274,7 +281,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* OTHER VIEWS REMAIN FOR FULL FUNCTIONALITY */}
+      {/* ABC ROOM */}
       {state.view === 'alphabet' && (
         <div className="flex-1 flex flex-col overflow-hidden pb-[var(--safe-bottom)] bg-slate-50">
           <div className="bg-[#22C55E] pt-[calc(var(--safe-top)+0.5rem)] pb-4 px-6 rounded-b-[3.5rem] shadow-xl flex items-center justify-between flex-shrink-0 z-30">
@@ -293,10 +300,12 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* GAME ENGINE */}
       {state.view === 'game_active' && state.selectedCategory && state.selectedGame && (
         <GameEngine category={state.selectedCategory} gameType={state.selectedGame} onBack={() => setState({ ...state, view: 'game_types' })} />
       )}
 
+      {/* ARCADE MENU */}
       {(state.view === 'game_types' || state.view === 'game_cats') && (
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 pb-[var(--safe-bottom)]">
           <div className="bg-[#FF7043] pt-[calc(var(--safe-top)+0.5rem)] pb-5 px-6 rounded-b-[3.5rem] shadow-xl flex items-center justify-between flex-shrink-0 z-30">
