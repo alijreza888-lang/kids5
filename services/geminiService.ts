@@ -65,6 +65,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
 };
 
 export const generateItemImage = async (itemName: string, categoryName: string): Promise<string | undefined> => {
+  // Always create a new instance to pick up the most recent API key from process.env
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const prompt = `A vibrant 3D cartoon illustration of a ${itemName} on white background. High quality, cute style for kids.`;
   
