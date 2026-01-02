@@ -14,7 +14,7 @@ const RAINBOW_COLORS = [
 
 const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('kids_joy_v17_data');
+    const saved = localStorage.getItem('kids_joy_v18_data');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [showAllCats, setShowAllCats] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('kids_joy_v17_data', JSON.stringify(categories));
+    localStorage.setItem('kids_joy_v18_data', JSON.stringify(categories));
   }, [categories]);
 
   const ensureApiKeyIsReady = async () => {
@@ -50,19 +50,12 @@ const App: React.FC = () => {
   const handleApiError = async (error: any) => {
     console.error("API Error Detail:", error);
     const errStr = String(error).toLowerCase();
-    // اگر در محیط تست AI Studio هستیم
+    
+    // Check for AI Studio specific key selection
     if (typeof window !== 'undefined' && (window as any).aistudio) {
       if (errStr.includes("key") || errStr.includes("401") || errStr.includes("403")) {
         await (window as any).aistudio.openSelectKey();
-        return;
       }
-    }
-    
-    // اگر در سایت شخصی کاربر هستیم
-    if (!process.env.API_KEY || process.env.API_KEY === "") {
-      alert("❌ خطای کلید API:\nلطفاً فایل README.md را بخوانید تا یاد بگیرید چگونه API_KEY را در تنظیمات Cloudflare یا Vercel خود اضافه کنید.");
-    } else {
-      alert("Something went wrong with the AI magic. Please try again!");
     }
   };
 
@@ -71,7 +64,7 @@ const App: React.FC = () => {
       if (state.view === 'learning_detail' && state.selectedCategory) {
         const item = state.selectedCategory.items[learningIndex];
         if (item) {
-          const cached = await imageStorage.get(`img_v17_${item.id}`);
+          const cached = await imageStorage.get(`img_v18_${item.id}`);
           setItemImage(cached);
         }
       }
@@ -105,7 +98,7 @@ const App: React.FC = () => {
     try {
       const url = await generateItemImage(item.name, state.selectedCategory!.name);
       if (url) {
-        await imageStorage.set(`img_v17_${item.id}`, url);
+        await imageStorage.set(`img_v18_${item.id}`, url);
         setItemImage(url);
       }
     } catch (e) {
@@ -257,13 +250,13 @@ const App: React.FC = () => {
                 </div>
 
                 {/* ATTRACTIVE ROUND NAVIGATION BUTTONS BELOW THE CARD */}
-                <div className="flex items-center justify-around w-full mt-10 px-6">
+                <div className="flex items-center justify-center space-x-8 mt-10">
                   <button onClick={() => { setLearningIndex(p => (p > 0 ? p - 1 : state.selectedCategory!.items.length - 1)); setShowPersian(false); }} 
-                    className="w-24 h-24 bg-white rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#e2e8f0] active:translate-y-2 active:shadow-none transition-all btn-tap">
+                    className="w-24 h-24 bg-white rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#e2e8f0] border-2 border-slate-100 active:translate-y-2 active:shadow-none transition-all btn-tap">
                     👈
                   </button>
                   <button onClick={() => { setLearningIndex(p => (p < state.selectedCategory!.items.length - 1 ? p + 1 : 0)); setShowPersian(false); }} 
-                    className="w-24 h-24 bg-indigo-600 rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#312e81] text-white active:translate-y-2 active:shadow-none transition-all btn-tap">
+                    className="w-24 h-24 bg-indigo-600 rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#312e81] border-2 border-indigo-500 text-white active:translate-y-2 active:shadow-none transition-all btn-tap">
                     👉
                   </button>
                 </div>
