@@ -14,7 +14,7 @@ const RAINBOW_COLORS = [
 
 const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('kids_joy_v18_data');
+    const saved = localStorage.getItem('kids_joy_v19_data');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [showAllCats, setShowAllCats] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('kids_joy_v18_data', JSON.stringify(categories));
+    localStorage.setItem('kids_joy_v19_data', JSON.stringify(categories));
   }, [categories]);
 
   const ensureApiKeyIsReady = async () => {
@@ -48,15 +48,21 @@ const App: React.FC = () => {
   };
 
   const handleApiError = async (error: any) => {
-    console.error("API Error Detail:", error);
-    const errStr = String(error).toLowerCase();
+    console.error("Full API Error Object:", error);
+    const errStr = String(error);
+    const lowerErr = errStr.toLowerCase();
     
-    // Check for AI Studio specific key selection
+    // Check for AI Studio specific key selection first
     if (typeof window !== 'undefined' && (window as any).aistudio) {
-      if (errStr.includes("key") || errStr.includes("401") || errStr.includes("403")) {
+      if (lowerErr.includes("key") || lowerErr.includes("401") || lowerErr.includes("403")) {
         await (window as any).aistudio.openSelectKey();
+        return;
       }
     }
+
+    // Comprehensive error message for the user
+    const errorMsg = `Error Details: ${errStr}\n\nKey used: ${process.env.API_KEY ? 'Set' : 'NOT Set'}`;
+    alert(errorMsg);
   };
 
   useEffect(() => {
@@ -64,7 +70,7 @@ const App: React.FC = () => {
       if (state.view === 'learning_detail' && state.selectedCategory) {
         const item = state.selectedCategory.items[learningIndex];
         if (item) {
-          const cached = await imageStorage.get(`img_v18_${item.id}`);
+          const cached = await imageStorage.get(`img_v19_${item.id}`);
           setItemImage(cached);
         }
       }
@@ -98,7 +104,7 @@ const App: React.FC = () => {
     try {
       const url = await generateItemImage(item.name, state.selectedCategory!.name);
       if (url) {
-        await imageStorage.set(`img_v18_${item.id}`, url);
+        await imageStorage.set(`img_v19_${item.id}`, url);
         setItemImage(url);
       }
     } catch (e) {
@@ -188,7 +194,6 @@ const App: React.FC = () => {
 
       {state.view === 'learning_detail' && state.selectedCategory && (
         <div className="flex-1 flex flex-col overflow-hidden bg-white pb-[var(--safe-bottom)]">
-          {/* HEADER SECTION */}
           <div className="bg-[#FFD233] pt-[calc(var(--safe-top)+0.5rem)] pb-4 px-6 rounded-b-[2.5rem] shadow-sm flex items-center justify-between flex-shrink-0 z-40">
             <button onClick={() => setState({...state, view: 'main'})} className="bg-white/40 w-11 h-11 rounded-full text-white flex items-center justify-center text-xl shadow-inner btn-tap">🏠</button>
             <div className="flex flex-col items-center">
@@ -201,7 +206,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50 relative">
-            {/* CATEGORY STRIP */}
             <div className="flex overflow-x-auto horizontal-scroll hide-scrollbar px-6 py-3 space-x-3 bg-white/80 border-b border-slate-100 flex-shrink-0 z-30">
               {categories.map((c) => (
                 <button key={c.id} onClick={() => { setState({ ...state, selectedCategory: c }); setLearningIndex(0); setShowPersian(false); }} 
@@ -210,12 +214,10 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center px-4 pt-2 pb-2 overflow-hidden relative">
-              
-              {/* IMAGE CARD */}
               <div className="w-full max-w-[340px] flex-1 flex flex-col justify-center relative">
+                
+                {/* IMAGE CARD */}
                 <div onClick={() => setShowPersian(!showPersian)} className={`w-full aspect-square rounded-[4rem] shadow-2xl flex flex-col items-center justify-center relative border-[2px] transition-all duration-500 overflow-hidden ${showPersian ? 'bg-indigo-600 border-indigo-400' : 'bg-white border-slate-50'}`}>
-                  
-                  {/* FLOATING ACTION BADGES */}
                   {!showPersian && (
                     <>
                       <button onClick={handleImageGen} className={`absolute top-4 left-4 z-50 w-12 h-12 bg-[#F43F5E] rounded-xl flex items-center justify-center text-2xl text-white shadow-lg border-2 border-white btn-tap ${isGeneratingImg ? 'animate-spin' : ''}`}>
@@ -234,7 +236,7 @@ const App: React.FC = () => {
                         {itemImage ? (
                           <img src={itemImage} alt="item" className="w-[98%] h-[98%] object-contain rounded-[3rem] animate-in zoom-in duration-500" />
                         ) : (
-                          <span className="text-[200px] drop-shadow-2xl animate-bounce-slow leading-none">{state.selectedCategory.items[learningIndex]?.emoji}</span>
+                          <span className="text-[180px] drop-shadow-2xl animate-bounce-slow leading-none">{state.selectedCategory.items[learningIndex]?.emoji}</span>
                         )}
                       </div>
                       <div className="bg-[#EEF2FF] px-10 py-2.5 rounded-2xl border border-indigo-100 shadow-sm flex-shrink-0 mb-2">
@@ -250,7 +252,7 @@ const App: React.FC = () => {
                 </div>
 
                 {/* ATTRACTIVE ROUND NAVIGATION BUTTONS BELOW THE CARD */}
-                <div className="flex items-center justify-center space-x-8 mt-10">
+                <div className="flex items-center justify-center space-x-12 mt-10">
                   <button onClick={() => { setLearningIndex(p => (p > 0 ? p - 1 : state.selectedCategory!.items.length - 1)); setShowPersian(false); }} 
                     className="w-24 h-24 bg-white rounded-full text-5xl flex items-center justify-center shadow-[0_12px_0_0_#e2e8f0] border-2 border-slate-100 active:translate-y-2 active:shadow-none transition-all btn-tap">
                     👈
@@ -263,7 +265,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* MAGIC EXPAND BUTTON */}
             <div className="px-12 pb-6 mt-4 flex-shrink-0 z-30">
               <button onClick={handleExpand} disabled={isExpanding} className={`w-full py-5 rounded-[2.5rem] font-black text-white shadow-xl transition-all flex items-center justify-center space-x-4 text-sm tracking-widest active:scale-95 ${isExpanding ? 'bg-slate-300' : 'bg-magic magic-btn-active'}`}>
                 <span className="text-2xl">🪄</span>
@@ -274,7 +275,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* ABC ROOM */}
       {state.view === 'alphabet' && (
         <div className="flex-1 flex flex-col overflow-hidden pb-[var(--safe-bottom)] bg-slate-50">
           <div className="bg-[#22C55E] pt-[calc(var(--safe-top)+0.5rem)] pb-4 px-6 rounded-b-[3.5rem] shadow-xl flex items-center justify-between flex-shrink-0 z-30">
@@ -293,12 +293,10 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* GAME ENGINE */}
       {state.view === 'game_active' && state.selectedCategory && state.selectedGame && (
         <GameEngine category={state.selectedCategory} gameType={state.selectedGame} onBack={() => setState({ ...state, view: 'game_types' })} />
       )}
 
-      {/* ARCADE MENU */}
       {(state.view === 'game_types' || state.view === 'game_cats') && (
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 pb-[var(--safe-bottom)]">
           <div className="bg-[#FF7043] pt-[calc(var(--safe-top)+0.5rem)] pb-5 px-6 rounded-b-[3.5rem] shadow-xl flex items-center justify-between flex-shrink-0 z-30">
