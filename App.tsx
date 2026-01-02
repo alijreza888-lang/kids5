@@ -14,7 +14,7 @@ const RAINBOW_COLORS = [
 
 const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('kids_joy_v19_data');
+    const saved = localStorage.getItem('kids_joy_v21_data');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
@@ -34,35 +34,37 @@ const App: React.FC = () => {
   const [showAllCats, setShowAllCats] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('kids_joy_v19_data', JSON.stringify(categories));
+    localStorage.setItem('kids_joy_v21_data', JSON.stringify(categories));
   }, [categories]);
 
-  const ensureApiKeyIsReady = async () => {
+  const openKeyDialog = async () => {
     if (typeof window !== 'undefined' && (window as any).aistudio) {
-      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        await (window as any).aistudio.openSelectKey();
-      }
+      await (window as any).aistudio.openSelectKey();
+      return true;
     }
-    return true;
+    return false;
   };
 
   const handleApiError = async (error: any) => {
-    console.error("Full API Error Object:", error);
-    const errStr = String(error);
-    const lowerErr = errStr.toLowerCase();
+    console.error("API Error Object:", error);
+    const errStr = String(error).toLowerCase();
     
-    // Check for AI Studio specific key selection first
-    if (typeof window !== 'undefined' && (window as any).aistudio) {
-      if (lowerErr.includes("key") || lowerErr.includes("401") || lowerErr.includes("403")) {
-        await (window as any).aistudio.openSelectKey();
-        return;
+    // Check if quota is exhausted or specifically limit is 0
+    if (errStr.includes("429") || errStr.includes("exhausted") || errStr.includes("limit")) {
+      const confirmed = window.confirm("✨ جادوگر برای تولید عکس نیاز به کلید معتبر دارد!\n\nکلید فعلی شما سهمیه تولید عکس ندارد (Limit: 0). آیا می‌خواهید یک کلید دیگر انتخاب کنید؟");
+      if (confirmed) {
+        await openKeyDialog();
       }
+      return;
     }
 
-    // Comprehensive error message for the user
-    const errorMsg = `Error Details: ${errStr}\n\nKey used: ${process.env.API_KEY ? 'Set' : 'NOT Set'}`;
-    alert(errorMsg);
+    // Check for auth/key errors
+    if (errStr.includes("key") || errStr.includes("401") || errStr.includes("403")) {
+      await openKeyDialog();
+      return;
+    }
+
+    alert("متأسفانه مشکلی در ارتباط با جادو پیش آمد. لطفاً دوباره تلاش کنید!");
   };
 
   useEffect(() => {
@@ -70,7 +72,7 @@ const App: React.FC = () => {
       if (state.view === 'learning_detail' && state.selectedCategory) {
         const item = state.selectedCategory.items[learningIndex];
         if (item) {
-          const cached = await imageStorage.get(`img_v19_${item.id}`);
+          const cached = await imageStorage.get(`img_v21_${item.id}`);
           setItemImage(cached);
         }
       }
@@ -99,12 +101,11 @@ const App: React.FC = () => {
     const item = state.selectedCategory?.items[learningIndex];
     if (isGeneratingImg || !item) return;
     
-    await ensureApiKeyIsReady();
     setIsGeneratingImg(true);
     try {
       const url = await generateItemImage(item.name, state.selectedCategory!.name);
       if (url) {
-        await imageStorage.set(`img_v19_${item.id}`, url);
+        await imageStorage.set(`img_v21_${item.id}`, url);
         setItemImage(url);
       }
     } catch (e) {
@@ -117,7 +118,6 @@ const App: React.FC = () => {
   const handleExpand = async () => {
     if (isExpanding || !state.selectedCategory) return;
     
-    await ensureApiKeyIsReady();
     setIsExpanding(true);
     try {
       const newItems = await expandCategoryItems(state.selectedCategory.name, state.selectedCategory.items);
